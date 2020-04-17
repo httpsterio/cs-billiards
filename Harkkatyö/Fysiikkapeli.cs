@@ -7,6 +7,8 @@ using Jypeli.Widgets;
 
 public class Harkkatyö : PhysicsGame
 {
+    bool CANHIT = true;
+    int HITCOUNTER = 0;
 
     public override void Begin()
     {
@@ -25,18 +27,17 @@ public class Harkkatyö : PhysicsGame
         LuoOhjaimet(maila, valkoinenPallo);
 
         Tormaykset(valkoinenPallo);
-
+        Sounds.PlayMusic();
     }
 
     public void Tormaykset(PhysicsObject tormaaja)
     {
-        SoundEffect seinaAani = LoadSoundEffect("wall");
 
         void seinatormays(PhysicsObject pallo, PhysicsObject kohde)
         {
-            if (kohde.Tag.ToString() == "laita")
+            if (kohde.Tag.ToString() == "laita" || kohde.Tag.ToString() == "kulma")
             {
-                seinaAani.Play(0.1, 0, 0);
+                Sounds.PlayWall();
             }
         }
         AddCollisionHandler(tormaaja, seinatormays);
@@ -46,20 +47,12 @@ public class Harkkatyö : PhysicsGame
 
         Mouse.ListenMovement(0.1, SiirraMaila, "liikuta mailaa", maila, valkoinenPallo);
         double voima = 10000;
-        Mouse.Listen(MouseButton.Left, ButtonState.Pressed, delegate() { LyoPalloa(valkoinenPallo, maila, ref voima); MessageDisplay.Add(voima.ToString()); } , "Lyö palloa");
-        Keyboard.Listen(Key.D1, ButtonState.Pressed, delegate() { voima = 10000; }, "Aseta lyönnin voimakkuus") ; // 1
-        Keyboard.Listen(Key.D2, ButtonState.Pressed, AsetaVoima, "Aseta lyönnin voimakkuus", 2);
-        Keyboard.Listen(Key.D3, ButtonState.Pressed, AsetaVoima, "Aseta lyönnin voimakkuus", 5);
-        Keyboard.Listen(Key.D4, ButtonState.Pressed, delegate() { voima = 100000; }, "Aseta lyönnin voimakkuus"); // 10
+        Mouse.Listen(MouseButton.Left, ButtonState.Down, delegate () { MessageDisplay.Add("lol"); }, null);
+        Mouse.Listen(MouseButton.Left, ButtonState.Down, delegate() { LyoPalloa(valkoinenPallo, maila, ref voima); } , "Lyö palloa");
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, "Lopeta peli");
         Keyboard.Listen(Key.R, ButtonState.Pressed, delegate()
         {
-            ClearAll();
-            LuoKentta();
-            LuoValkoinenPallo(valkoinenPallo);
-            LuoMaila(maila, valkoinenPallo);
-            LuoOhjaimet(maila, valkoinenPallo);
-
+            Reset(maila, valkoinenPallo);
         }, "Resetoi peli");
 
         void AsetaVoima(int value)
@@ -105,6 +98,12 @@ public class Harkkatyö : PhysicsGame
         kangas.Position = new Vector(0, 0);
         Add(kangas, -3);
 
+        // Alempana on kolme listaa, jotka sisältävät koordinaatteja, kokoja ja mahdollisesti kallistuskulmia
+        // joiden avulla generoidaan fysiikkaobjekteja (laidat, taskut ja taskujen supistajat). Alkuperäisessä 
+        // ideassa Kenttä koostuu läpinäkyvistä kuvista ja kuvien tasoista voitaisiin generoida kaikki tarvittavat
+        // ilman erillistä listaa, mutta Jypeli ei tue ns. onttoja kuvia, eli kentän laidat eivät voineet toimia
+        // sisälaitoina, joten tässä on purkkaratkaisu. 
+
         // Lista, jossa on laitablokkien koot (korkeus, leveys) ja sijainti vektoreina. Näitä käytetään törmäyksissä ja elementit on listassa jotta niitä voidaan kutsua loopilla.
         var LaitaLista = new List<(double, double, Vector)>
         {
@@ -139,27 +138,27 @@ public class Harkkatyö : PhysicsGame
             LuoTasku(item.Item1, item.Item2);
         }
 
-        //// Nurkkataskut
-        //LuoTasku(new Vector(-376, 200), 45);
-        //LuoTasku(new Vector(376, 200), -45);
-        //LuoTasku(new Vector(-376, -200), -45);
-        //LuoTasku(new Vector(376, -200), 45);
+        var KulmaLista = new List<(Vector, double)>
+        {
+        (new Vector(-364, 162), 60),
+        (new Vector(364, 162), -60),
+        (new Vector(-364, -162), -60),
+        (new Vector(364, -162), 60),
+        (new Vector(-330, 196), 30),
+        (new Vector(330, 196), -30),
+        (new Vector(-330, -196), -30),
+        (new Vector(330, -196), 30),
+        (new Vector(-24, 197), -24),
+        (new Vector(-24, -197), 24),
+        (new Vector(24, 197), 24),
+        (new Vector(24, -197), -24)
+        };
 
-        // Kulmataskujen "supistajat"
-        LuoLaitaKulma(new Vector(-364, 162), 60);
-        LuoLaitaKulma(new Vector(364, 162), -60);
-        LuoLaitaKulma(new Vector(-364, -162), -60);
-        LuoLaitaKulma(new Vector(364, -162), 60);
-
-        LuoLaitaKulma(new Vector(-330, 196), 30);
-        LuoLaitaKulma(new Vector(330, 196), -30);
-        LuoLaitaKulma(new Vector(-330, -196), -30);
-        LuoLaitaKulma(new Vector(330, -196), 30);
-
-        //// Keskitaskut
-        //LuoTasku(new Vector(0, 228), 0);
-        //LuoTasku(new Vector(0, -228), 0);
-
+        // Iteroi listan läpi ja välittää listan arvot parametrina funktiolle joka luo taskut törmäyksiä varten 
+        foreach (var item in KulmaLista)
+        {
+            LuoLaitaKulma(item.Item1, item.Item2);
+        }
     }
 
     public void LuoLaitaKulma(Vector sijainti, double kallistus)
@@ -168,10 +167,13 @@ public class Harkkatyö : PhysicsGame
         kulma.Shape = Shape.Rectangle;
         kulma.Position = sijainti;
         kulma.MakeStatic();
-        kulma.Color = Color.Red;
+        kulma.Color = Color.Transparent;
         kulma.Tag = "kulma";
         kulma.Angle = Angle.FromDegrees(kallistus);
         Add(kulma, 3);
+        #if DEBUG
+            kulma.Color = Color.Red;
+        #endif
 
     }
 
@@ -227,28 +229,17 @@ public class Harkkatyö : PhysicsGame
             if (Math.Abs(valkoinenPallo.Velocity.X) > 0.9 || Math.Abs(valkoinenPallo.Velocity.Y) > 0.9)
             {
                 maila.Size = new Vector(1,1);
+                CANHIT = false;
             }
             else
             {
                 maila.Size = new Vector(17,328);
+                CANHIT = true;
 
             }
 
         };
         mailanAjastin.Start();
-    }
-
-    public void LuoTasku(PhysicsObject tasku, int amount)
-    {
-        for (int i = 0; i < amount; i++)
-        {
-            tasku = new PhysicsObject(80,80);
-            tasku.Shape = Shape.Diamond;
-            tasku.Color = Color.Black;
-            tasku.Position = RandomGen.NextVector(Level.BoundingRect);
-            tasku.MakeStatic();
-            Add(tasku);
-        }
     }
 
     public void SiirraMaila(PhysicsObject maila, PhysicsObject pallo)
@@ -262,7 +253,55 @@ public class Harkkatyö : PhysicsGame
     public void LyoPalloa(PhysicsObject pallo, PhysicsObject maila, ref double voima)
     {
         Vector suunta = new Vector(pallo.X - maila.X, pallo.Y - maila.Y);
-        pallo.Push(suunta.Normalize() * voima);
+        if (CANHIT == true) { 
+            pallo.Push(suunta.Normalize() * voima);
+            HITCOUNTER++;
+        }
+        else
+        {
+            Sounds.PlayError();
+        }
         pallo.LinearDamping = 0.985;
+    }
+
+    public void Reset(PhysicsObject maila, PhysicsObject valkoinenPallo)
+    {
+        ClearAll();
+        LuoKentta();
+        LuoValkoinenPallo(valkoinenPallo);
+        LuoMaila(maila, valkoinenPallo);
+        LuoOhjaimet(maila, valkoinenPallo);
+
+    }
+
+    public void Pallot()
+    {
+
+    }
+
+    public static class Sounds
+    {
+        static SoundEffect error = LoadSoundEffect("false");
+        static SoundEffect seina = LoadSoundEffect("wall");
+        static SoundEffect intro = LoadSoundEffect("intro");
+        static SoundEffect bg = LoadSoundEffect("bg");
+        
+        public static void PlayError()
+        {
+            error.Play(0.2, 0, 0);
+        }
+
+        public static void PlayWall()
+        {
+            seina.Play(0.1, 0, 0);
+        }
+
+        public static void PlayMusic()
+        {
+            intro.Play(0.3, 0, 0);
+            Timer.SingleShot(6.80, delegate { bg.Play(0.3,0,0); });
+            Timer.CreateAndStart(144.0, delegate { bg.Play(0.3, 0, 0); });
+        }
+        
     }
 }

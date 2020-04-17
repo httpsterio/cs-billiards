@@ -9,6 +9,8 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
+		Dev|Any CPU = Dev|Any CPU
+		Dev|x64 = Dev|x64
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 	EndGlobalSection
@@ -17,6 +19,10 @@ Global
 		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Debug|x64.ActiveCfg = Debug|x64
 		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Debug|x64.Build.0 = Debug|x64
+		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Dev|Any CPU.ActiveCfg = Dev|Any CPU
+		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Dev|Any CPU.Build.0 = Dev|Any CPU
+		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Dev|x64.ActiveCfg = Dev|x64
+		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Dev|x64.Build.0 = Dev|x64
 		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C2333107-6FB4-4C77-9502-80F5A4600A57}.Release|x64.ActiveCfg = Release|x64
