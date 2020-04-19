@@ -152,6 +152,9 @@
     <None Update="Content\p9.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Content\power.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Content\poyta.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

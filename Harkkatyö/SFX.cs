@@ -1,6 +1,10 @@
 ﻿using Jypeli;
 
 // TODO LISÄÄ LYÖNTIÄÄNI JA PALLOJEN TÖRMÄYS
+
+/// <summary>
+/// Luokka joka vastaa ääniefektien mäppäyksestä ja tarjoaa funktiot jolla ääniä voi toistaa.
+/// </summary>
 public class SFX
 {
     readonly SoundEffect error = Game.LoadSoundEffect("false");
@@ -10,44 +14,58 @@ public class SFX
     readonly SoundEffect ball = Game.LoadSoundEffect("ball");
     readonly SoundEffect fail = Game.LoadSoundEffect("fail");
     readonly SoundEffect win = Game.LoadSoundEffect("win");
+    readonly SoundEffect power = Game.LoadSoundEffect("power");
 
-    private double volumeLevel = 0.2;
+    private double VOLUMELEVEL = 0.2;
 
+    /// <summary>
+    /// Get/Set ääniefektien äänenvoimakkuuden.
+    /// </summary>
     public double VolumeLevel
     {
-        get { return volumeLevel; }
-        set { volumeLevel = value; }
+        get { return VOLUMELEVEL; }
+        set { VOLUMELEVEL = value; }
     }
 
     public void PlayWall()
     {
-        seina.Play(volumeLevel, 0, 0);
+        seina.Play(VolumeLevel, 0, 0);
     }
     public void PlayError()
     {
-        error.Play(volumeLevel, 0, 0);
+        error.Play(VolumeLevel, 0, 0);
     }
 
     public void PlayMusic()
     {
-        intro.Play(0.0, 0, 0);
-        Timer.SingleShot(6.79, delegate { bg.Play(0.0, 0, 0); });
-        Timer.CreateAndStart(143.8, delegate { bg.Play(0.0, 0, 0); });
+        intro.Play(VolumeLevel, 0, 0);
+        Timer.SingleShot(6.79, delegate { bg.Play(VolumeLevel, 0, 0); });
+        Timer.CreateAndStart(143.8, delegate { bg.Play(VolumeLevel, 0, 0); });
     }
 
     public void PlayBall()
     {
-        ball.Play(volumeLevel, 0, 0);
+        ball.Play(VolumeLevel, 0, 0);
     }
 
     public void PlayFail()
     {
-        fail.Play(volumeLevel, 0, 0);
+        fail.Play(VolumeLevel, 0, 0);
     }
 
     public void PlayWin()
     {
-        win.Play(volumeLevel, 0, 0);
+        win.Play(VolumeLevel, 0, 0);
+    }
+
+    public void PlayPower()
+    {
+        power.Play(VolumeLevel, 0, 0);
+    }
+
+    public void StopPower()
+    {
+        power.Stop();
     }
 
     public void StopMusic()
