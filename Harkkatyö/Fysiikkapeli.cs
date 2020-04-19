@@ -7,8 +7,15 @@ using Jypeli.Widgets;
 
 public class Harkkatyö : PhysicsGame
 {
+    // Muutama yleinen vakio, siirrän mahdolisuuksien mukaan jonnekkin aliohjelmaan, mikäli arvoja ei tarvitse kuljettaa joka aliohjelman välillä
+    // Boolean arvo voiko pelaaja lyödä vai ei, asetetaan negatiiviseksi lyönnin yhteydessä ja tarkistetaan 60 kertaa sekunnissa liikkuvatko pallot vielä,
+    // Kunnes pallot eivät enää liiku, asetetaan takaisin trueksi.
     bool CANHIT = true;
+
+    // Laskuri montako kertaa pelaaja on lyönyt, käytetään pisteytyksessä. Voisi mahdollisesti siirtää aliohjelmaankin.
     int HITCOUNTER = 0;
+
+    // Ääniluokan alustus
     private SFX Sfx;
 
     public override void Begin()
@@ -26,65 +33,113 @@ public class Harkkatyö : PhysicsGame
         LuoValkoinenPallo(valkoinenPallo);
         LuoMaila(maila, valkoinenPallo);
         LuoOhjaimet(maila, valkoinenPallo);
-        LuoPallot();
-        Tormaykset(valkoinenPallo);
+        Tormaykset(valkoinenPallo, LuoPallot());
         Sfx.PlayMusic();
 
     }
 
     // Metodi eri törmäyksenkäsittelijöille
-    public void Tormaykset(PhysicsObject tormaaja)
+    private void Tormaykset(PhysicsObject pelipallo, List<PhysicsObject> pallolista)
     {
-        void seinatormays(PhysicsObject pallo, PhysicsObject kohde)
+        // Törmäyskäsittelijä joka toistaa ääniluokasta äänen kun objekti törmää joko laitaan tai kulmaan
+        void palloSeinaAani(PhysicsObject pallo, PhysicsObject kohde)
         {
             if (kohde.Tag.ToString() == "laita" || kohde.Tag.ToString() == "kulma")
             {
                 Sfx.PlayWall();
             }
         }
-        AddCollisionHandler(tormaaja, seinatormays);
+
+        // Kun pelipallo törmää toiseen palloon, toistetaan tämä ääni
+        void palloPalloAani(PhysicsObject pallo, PhysicsObject kohde)
+        {
+            String kohdepallo = kohde.Tag.ToString();
+            bool isBall = kohdepallo.Contains("p");
+            if (isBall == true)
+            {
+                Sfx.PlayBall();
+            }
+        }
+
+        // Törmäyskäsittelijä kun pelipallo joutuu pussitettavaksi
+        void valkoinenTasku(PhysicsObject pallo, PhysicsObject kohde)
+        {
+            if (kohde.Tag.ToString() == "taskucollision")
+            {
+                Sfx.PlayFail();
+                MessageDisplay.Add("Valkoinen taskussa");
+                HITCOUNTER += 5;
+            }
+        }
+
+        // Lisätään ylläoleva törmäyksenkäsittelijä valkoiseen palloon
+        AddCollisionHandler(pelipallo, palloSeinaAani);
+
+        // Lisätään jokaiselle tavalliselle pallolle ääniefekti törmätessään seinään
+        pallolista.ForEach(pallo => { AddCollisionHandler(pallo, palloSeinaAani); });
+
+        // Ääniefekti kun pelipallo ja muut pallot törmäävät toisiinsa
+        AddCollisionHandler(pelipallo, palloPalloAani);
+
+        // Tapahtumankäsittelijä kun pelipallo joutuu pussitettavaksi
+        AddCollisionHandler(pelipallo, valkoinenTasku);
     }
 
-    public void LuoPallot()
+    // Pelissä käytettävien pallojen luonti, ei ota vastaan parametreja mutta palauttaa listan fysiikkaobjekteista
+    private List<PhysicsObject> LuoPallot()
     {
-        double ballSize = 16;
-        double r = ballSize / 2;
+        double r = 8;
         double pyth = Math.Sqrt(Math.Pow(2 * r,2)-Math.Pow(r,2));
+        var objektiLista = new List<PhysicsObject>();
         var palloLista = new List<(double, double, String)>
         {
-            (0, 0, "valkoinen"),
+            (0, 0, "p1"),
 
-            (-pyth, (r), "1"),
-            (-pyth, -(r), "2"),
+            (-pyth, (r), "p2"),
+            (-pyth, -(r), "p3"),
 
-            (-(2 * pyth), (2*r), "4"),
-            (-(2*pyth), 0, "5"),
-            (-(2*pyth), -(2*r), "6"),
+            (-(2 * pyth), (2*r), "p4"),
+            (-(2*pyth), 0, "p5"),
+            (-(2*pyth), -(2*r), "p6"),
+
+            (-(3*pyth), (3*r), "p7"),
+            (-(3*pyth), (1*r), "p8"),
+            (-(3*pyth), -(1*r), "p9"),
+            (-(3*pyth), -(3*r), "p10"),
+
+            (-(4*pyth), (4*r), "p11"),
+            (-(4*pyth), (2*r), "p12"),
+            (-(4*pyth), 0, "p13"),
+            (-(4*pyth), -(2*r), "p14"),
+            (-(4*pyth), -(4*r), "p15"),
         };
 
         foreach (var item in palloLista)
         {
-            LuoPallo(item.Item1, item.Item2, ballSize, item.Item3);
-
+            objektiLista.Add(LuoPallo(item.Item1, item.Item2, r, item.Item3));
         }
 
-        void LuoPallo(double x, double y, double koko, String nimi)
+        PhysicsObject LuoPallo(double x, double y, double r, String nimi)
         {
-            PhysicsObject pallo = new PhysicsObject(koko, koko);
-            pallo.X = x;
-            pallo.Y = y;
-            pallo.Tag = nimi;
-            pallo.Shape = Shape.Circle;
-            pallo.Color = Color.Transparent;
-            pallo.Image = LoadImage(nimi);
-            pallo.LinearDamping = 0.987;
-            pallo.Mass = 0.05;
-
+            PhysicsObject pallo = new PhysicsObject(r * 2, r * 2)
+            {
+                X = x,
+                Y = y,
+                Tag = nimi,
+                Shape = Shape.Circle,
+                Color = Color.Transparent,
+                Image = LoadImage(nimi),
+                LinearDamping = 0.987,
+                Mass = 0.05
+            };
             Add(pallo, 1);
+            return pallo;
         }
+
+        return objektiLista;
 
     }
-    public void LuoOhjaimet(PhysicsObject maila, PhysicsObject valkoinenPallo)
+    private void LuoOhjaimet(PhysicsObject maila, PhysicsObject valkoinenPallo)
     {
 
         Mouse.ListenMovement(0.1, SiirraMaila, "liikuta mailaa", maila, valkoinenPallo);
@@ -102,16 +157,17 @@ public class Harkkatyö : PhysicsGame
 
     }
 
-    public void LuoValkoinenPallo(PhysicsObject valkoinenPallo)
+    private void LuoValkoinenPallo(PhysicsObject valkoinenPallo)
     {
         valkoinenPallo.Shape = Shape.Circle;
         valkoinenPallo.X = 200;
+        valkoinenPallo.Tag = "pv";
         valkoinenPallo.Y = 0;
         valkoinenPallo.Mass = 0.1;
         Add(valkoinenPallo);
     }
 
-    public void LuoKentta()
+    private void LuoKentta()
     {
         // Asettaa ikkunan koon, laittaa pelille laidat ja zoomaa pelin näkyviin elementteihin.
         SetWindowSize(1280, 1024);
@@ -338,37 +394,4 @@ public class Harkkatyö : PhysicsGame
         Sfx.StopMusic();
         Init(maila, valkoinenPallo);
     }
-}
-
-
-// TODO LISÄÄ LYÖNTIÄÄNI JA PALLOJEN TÖRMÄYS, EHKÄ TASKUTÖRMÄYSÄÄNI
-public class SFX
-{
-    readonly SoundEffect error = Game.LoadSoundEffect("false");
-    readonly SoundEffect seina = Game.LoadSoundEffect("wall");
-    readonly SoundEffect intro = Game.LoadSoundEffect("intro");
-    readonly SoundEffect bg = Game.LoadSoundEffect("bg");
-
-    public void PlayWall()
-    {
-        seina.Play(0.1, 0, 0);
-    }
-    public void PlayError()
-    {
-        error.Play(0.2, 0, 0);
-    }
-
-    public void PlayMusic()
-    {
-        intro.Play(0.3, 0, 0);
-        Timer.SingleShot(6.79, delegate { bg.Play(0.3, 0, 0); });
-        Timer.CreateAndStart(143.8, delegate { bg.Play(0.3, 0, 0); });
-    }
-
-    public void StopMusic()
-    {
-        intro.Stop();
-        bg.Stop();
-    }
-
 }
