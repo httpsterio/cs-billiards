@@ -1,4 +1,5 @@
 ﻿using Jypeli;
+
 // TODO LISÄÄ LYÖNTIÄÄNI JA PALLOJEN TÖRMÄYS
 public class SFX
 {
@@ -8,6 +9,7 @@ public class SFX
     readonly SoundEffect bg = Game.LoadSoundEffect("bg");
     readonly SoundEffect ball = Game.LoadSoundEffect("ball");
     readonly SoundEffect fail = Game.LoadSoundEffect("fail");
+    readonly SoundEffect win = Game.LoadSoundEffect("win");
 
     private double volumeLevel = 0.2;
 
@@ -41,6 +43,11 @@ public class SFX
     public void PlayFail()
     {
         fail.Play(volumeLevel, 0, 0);
+    }
+
+    public void PlayWin()
+    {
+        win.Play(volumeLevel, 0, 0);
     }
 
     public void StopMusic()

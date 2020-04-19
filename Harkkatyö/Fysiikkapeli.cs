@@ -72,6 +72,15 @@ public class Harkkatyö : PhysicsGame
             }
         }
 
+        void palloTasku(PhysicsObject pallo, PhysicsObject kohde)
+        {
+            if (kohde.Tag.ToString() == "taskucollision")
+            {
+                Sfx.PlayWin();
+                MessageDisplay.Add("pallo taskussa");
+            }
+        }
+
         // Lisätään ylläoleva törmäyksenkäsittelijä valkoiseen palloon
         AddCollisionHandler(pelipallo, palloSeinaAani);
 
@@ -83,35 +92,39 @@ public class Harkkatyö : PhysicsGame
 
         // Tapahtumankäsittelijä kun pelipallo joutuu pussitettavaksi
         AddCollisionHandler(pelipallo, valkoinenTasku);
+
+        // Lisätään jokaiselle tavalliselle pallolle törmäyksentunnistus
+        pallolista.ForEach(pallo => { AddCollisionHandler(pallo, palloTasku); });
     }
 
     // Pelissä käytettävien pallojen luonti, ei ota vastaan parametreja mutta palauttaa listan fysiikkaobjekteista
     private List<PhysicsObject> LuoPallot()
     {
         double r = 8;
-        double pyth = Math.Sqrt(Math.Pow(2 * r,2)-Math.Pow(r,2));
+        double pyth = Math.Sqrt(Math.Pow(2 * r, 2) - Math.Pow(r, 2));
+        double sp = -150;
         var objektiLista = new List<PhysicsObject>();
         var palloLista = new List<(double, double, String)>
         {
-            (0, 0, "p1"),
+            (sp-0, 0, "p1"),
 
-            (-pyth, (r), "p2"),
-            (-pyth, -(r), "p3"),
+            (sp-pyth, (r), "p7"),
+            (sp-pyth, -(r), "p12"),
 
-            (-(2 * pyth), (2*r), "p4"),
-            (-(2*pyth), 0, "p5"),
-            (-(2*pyth), -(2*r), "p6"),
+            (sp-(2 * pyth), (2*r), "p15"),
+            (sp-(2*pyth), 0, "p8"),
+            (sp-(2*pyth), -(2*r), "p1"),
 
-            (-(3*pyth), (3*r), "p7"),
-            (-(3*pyth), (1*r), "p8"),
-            (-(3*pyth), -(1*r), "p9"),
-            (-(3*pyth), -(3*r), "p10"),
+            (sp-(3*pyth), (3*r), "p6"),
+            (sp-(3*pyth), (1*r), "p10"),
+            (sp-(3*pyth), -(1*r), "p3"),
+            (sp-(3*pyth), -(3*r), "p14"),
 
-            (-(4*pyth), (4*r), "p11"),
-            (-(4*pyth), (2*r), "p12"),
-            (-(4*pyth), 0, "p13"),
-            (-(4*pyth), -(2*r), "p14"),
-            (-(4*pyth), -(4*r), "p15"),
+            (sp-(4*pyth), (4*r), "p11"),
+            (sp-(4*pyth), (2*r), "p2"),
+            (sp-(4*pyth), 0, "p13"),
+            (sp-(4*pyth), -(2*r), "p4"),
+            (sp-(4*pyth), -(4*r), "p5"),
         };
 
         foreach (var item in palloLista)
@@ -276,9 +289,9 @@ public class Harkkatyö : PhysicsGame
         };
         kulma.MakeStatic();
         Add(kulma, 3);
-#if DEBUG
-        kulma.Color = Color.Red;
-#endif
+        #if DEBUG
+                kulma.Color = Color.Red;
+        #endif
 
     }
 
@@ -295,9 +308,9 @@ public class Harkkatyö : PhysicsGame
         };
         taskuCollision.MakeStatic();
         Add(taskuCollision);
-#if DEBUG
-        taskuCollision.Color = Color.Pink;
-#endif
+        #if DEBUG
+                taskuCollision.Color = Color.Pink;
+        #endif
 
     }
 
@@ -314,9 +327,9 @@ public class Harkkatyö : PhysicsGame
         };
         laita.MakeStatic();
         Add(laita);
-#if DEBUG
-        laita.Color = Color.Blue;
-#endif
+        #if DEBUG
+                laita.Color = Color.Blue;
+        #endif
 
     }
 
@@ -330,7 +343,7 @@ public class Harkkatyö : PhysicsGame
         maila.Y = paikkaruudulla.Y;
         maila.Angle = Angle.FromDegrees(0);
         maila.IgnoresCollisionResponse = true;
-        Add(maila,2);
+        Add(maila, 2);
 
         Timer mailanAjastin = new Timer
         {
@@ -366,7 +379,8 @@ public class Harkkatyö : PhysicsGame
     public void LyoPalloa(PhysicsObject pallo, PhysicsObject maila, ref double voima)
     {
         Vector suunta = new Vector(pallo.X - maila.X, pallo.Y - maila.Y);
-        if (CANHIT == true) { 
+        if (CANHIT == true)
+        {
             pallo.Push(suunta.Normalize() * voima);
             HITCOUNTER++;
             MessageDisplay.Add(HITCOUNTER.ToString());
