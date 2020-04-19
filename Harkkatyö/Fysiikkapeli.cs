@@ -18,9 +18,12 @@ public class Harkkatyö : PhysicsGame
     // Ääniluokan alustus
     private SFX Sfx;
 
+    private BallClass Balls;
+
     public override void Begin()
     {
         Sfx = new SFX();
+        Balls = new BallClass();
         Mouse.IsCursorVisible = true;
 
 
@@ -33,7 +36,7 @@ public class Harkkatyö : PhysicsGame
         LuoValkoinenPallo(valkoinenPallo);
         LuoMaila(maila, valkoinenPallo);
         LuoOhjaimet(maila, valkoinenPallo);
-        Tormaykset(valkoinenPallo, LuoPallot());
+        Tormaykset(valkoinenPallo, Balls.LuoPallot());
         Sfx.PlayMusic();
 
     }
@@ -98,60 +101,60 @@ public class Harkkatyö : PhysicsGame
     }
 
     // Pelissä käytettävien pallojen luonti, ei ota vastaan parametreja mutta palauttaa listan fysiikkaobjekteista
-    private List<PhysicsObject> LuoPallot()
-    {
-        double r = 8;
-        double pyth = Math.Sqrt(Math.Pow(2 * r, 2) - Math.Pow(r, 2));
-        double sp = -150;
-        var objektiLista = new List<PhysicsObject>();
-        var palloLista = new List<(double, double, String)>
-        {
-            (sp-0, 0, "p1"),
+    //private List<PhysicsObject> LuoPallot()
+    //{
+    //    double r = 8;
+    //    double pyth = Math.Sqrt(Math.Pow(2 * r, 2) - Math.Pow(r, 2));
+    //    double sp = -150;
+    //    var objektiLista = new List<PhysicsObject>();
+    //    var palloLista = new List<(double, double, String)>
+    //    {
+    //        (sp-0, 0, "p1"),
 
-            (sp-pyth, (r), "p7"),
-            (sp-pyth, -(r), "p12"),
+    //        (sp-pyth, (r), "p7"),
+    //        (sp-pyth, -(r), "p12"),
 
-            (sp-(2 * pyth), (2*r), "p15"),
-            (sp-(2*pyth), 0, "p8"),
-            (sp-(2*pyth), -(2*r), "p1"),
+    //        (sp-(2 * pyth), (2*r), "p15"),
+    //        (sp-(2*pyth), 0, "p8"),
+    //        (sp-(2*pyth), -(2*r), "p1"),
 
-            (sp-(3*pyth), (3*r), "p6"),
-            (sp-(3*pyth), (1*r), "p10"),
-            (sp-(3*pyth), -(1*r), "p3"),
-            (sp-(3*pyth), -(3*r), "p14"),
+    //        (sp-(3*pyth), (3*r), "p6"),
+    //        (sp-(3*pyth), (1*r), "p10"),
+    //        (sp-(3*pyth), -(1*r), "p3"),
+    //        (sp-(3*pyth), -(3*r), "p14"),
 
-            (sp-(4*pyth), (4*r), "p11"),
-            (sp-(4*pyth), (2*r), "p2"),
-            (sp-(4*pyth), 0, "p13"),
-            (sp-(4*pyth), -(2*r), "p4"),
-            (sp-(4*pyth), -(4*r), "p5"),
-        };
+    //        (sp-(4*pyth), (4*r), "p11"),
+    //        (sp-(4*pyth), (2*r), "p2"),
+    //        (sp-(4*pyth), 0, "p13"),
+    //        (sp-(4*pyth), -(2*r), "p4"),
+    //        (sp-(4*pyth), -(4*r), "p5"),
+    //    };
 
-        foreach (var item in palloLista)
-        {
-            objektiLista.Add(LuoPallo(item.Item1, item.Item2, r, item.Item3));
-        }
+    //    foreach (var item in palloLista)
+    //    {
+    //        objektiLista.Add(LuoPallo(item.Item1, item.Item2, r, item.Item3));
+    //    }
 
-        PhysicsObject LuoPallo(double x, double y, double r, String nimi)
-        {
-            PhysicsObject pallo = new PhysicsObject(r * 2, r * 2)
-            {
-                X = x,
-                Y = y,
-                Tag = nimi,
-                Shape = Shape.Circle,
-                Color = Color.Transparent,
-                Image = LoadImage(nimi),
-                LinearDamping = 0.987,
-                Mass = 0.05
-            };
-            Add(pallo, 1);
-            return pallo;
-        }
+    //    PhysicsObject LuoPallo(double x, double y, double r, String nimi)
+    //    {
+    //        PhysicsObject pallo = new PhysicsObject(r * 2, r * 2)
+    //        {
+    //            X = x,
+    //            Y = y,
+    //            Tag = nimi,
+    //            Shape = Shape.Circle,
+    //            Color = Color.Transparent,
+    //            Image = LoadImage(nimi),
+    //            LinearDamping = 0.987,
+    //            Mass = 0.05
+    //        };
+    //        Add(pallo, 1);
+    //        return pallo;
+    //    }
 
-        return objektiLista;
+    //    return objektiLista;
 
-    }
+    //}
     private void LuoOhjaimet(PhysicsObject maila, PhysicsObject valkoinenPallo)
     {
 
@@ -407,5 +410,63 @@ public class Harkkatyö : PhysicsGame
         ClearAll();
         Sfx.StopMusic();
         Init(maila, valkoinenPallo);
+    }
+}
+
+public class BallClass
+{
+    public List<PhysicsObject> LuoPallot()
+    {
+        double r = 8;
+        double pyth = Math.Sqrt(Math.Pow(2 * r, 2) - Math.Pow(r, 2));
+        double sp = -150;
+        var objektiLista = new List<PhysicsObject>();
+        var palloLista = new List<(double, double, String)>
+        {
+            (sp-0, 0, "p1"),
+
+            (sp-pyth, (r), "p7"),
+            (sp-pyth, -(r), "p12"),
+
+            (sp-(2 * pyth), (2*r), "p15"),
+            (sp-(2*pyth), 0, "p8"),
+            (sp-(2*pyth), -(2*r), "p1"),
+
+            (sp-(3*pyth), (3*r), "p6"),
+            (sp-(3*pyth), (1*r), "p10"),
+            (sp-(3*pyth), -(1*r), "p3"),
+            (sp-(3*pyth), -(3*r), "p14"),
+
+            (sp-(4*pyth), (4*r), "p11"),
+            (sp-(4*pyth), (2*r), "p2"),
+            (sp-(4*pyth), 0, "p13"),
+            (sp-(4*pyth), -(2*r), "p4"),
+            (sp-(4*pyth), -(4*r), "p5"),
+        };
+
+        foreach (var item in palloLista)
+        {
+            objektiLista.Add(LuoPallo(item.Item1, item.Item2, r, item.Item3));
+        }
+
+        PhysicsObject LuoPallo(double x, double y, double r, String nimi)
+        {
+            PhysicsObject pallo = new PhysicsObject(r * 2, r * 2)
+            {
+                X = x,
+                Y = y,
+                Tag = nimi,
+                Shape = Shape.Circle,
+                Color = Color.Transparent,
+                Image = Game.LoadImage(nimi),
+                LinearDamping = 0.987,
+                Mass = 0.05
+            };
+            Game.Add(pallo, 1);
+            return pallo;
+        }
+
+        return objektiLista;
+
     }
 }
