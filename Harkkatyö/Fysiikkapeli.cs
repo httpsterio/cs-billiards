@@ -17,7 +17,7 @@ public class Harkkatyö : PhysicsGame
     // Muutama yleinen vakio, siirrän mahdolisuuksien mukaan jonnekkin aliohjelmaan, mikäli arvoja ei tarvitse kuljettaa joka aliohjelman välillä
     // Boolean arvo voiko pelaaja lyödä vai ei, asetetaan negatiiviseksi lyönnin yhteydessä ja tarkistetaan 60 kertaa sekunnissa liikkuvatko pallot vielä,
     // Kunnes pallot eivät enää liiku, asetetaan takaisin trueksi.
-   private bool CANHIT = true;
+    private bool CANHIT = true;
 
     // Laskuri montako kertaa pelaaja on lyönyt, käytetään pisteytyksessä. Voisi mahdollisesti siirtää aliohjelmaankin.
     private int HITCOUNTER = 0;
@@ -195,8 +195,8 @@ public class Harkkatyö : PhysicsGame
                 Shape = Shape.Circle,
                 Color = Color.Transparent,
                 Image = LoadImage(nimi),
-                LinearDamping = 0.987,
-                Mass = 0.05
+                LinearDamping = 0.98,
+                Mass = 0.04
             };
             Add(pallo, 1);
             return pallo;
@@ -225,7 +225,7 @@ public class Harkkatyö : PhysicsGame
         {
             if (voima <= voimaMax)
             {
-                voima =+ 23;
+                voima = voima + 23;
             }
             else
             {
@@ -242,7 +242,7 @@ public class Harkkatyö : PhysicsGame
         Mouse.Listen(MouseButton.Left, ButtonState.Released, delegate () {
             Sfx.StopPower();
             LyoPalloa(valkoinenPallo, maila, ref voima);
-            //voima = voimaDefault;
+            voima = voimaDefault;
         }, "Lyö palloa");
 
 
@@ -363,9 +363,9 @@ public class Harkkatyö : PhysicsGame
         };
         taskuCollision.MakeStatic();
         Add(taskuCollision);
-        #if DEBUG
-                taskuCollision.Color = Color.Pink;
-        #endif
+#if DEBUG
+        taskuCollision.Color = Color.Pink;
+#endif
 
     }
 
@@ -382,9 +382,9 @@ public class Harkkatyö : PhysicsGame
         };
         laita.MakeStatic();
         Add(laita);
-        #if DEBUG
-                laita.Color = Color.Blue;
-        #endif
+#if DEBUG
+        laita.Color = Color.Blue;
+#endif
 
     }
 
@@ -454,7 +454,7 @@ public class Harkkatyö : PhysicsGame
         {
             Sfx.PlayError();
         }
-        pallo.LinearDamping = 0.99;
+        pallo.LinearDamping = 0.98;
     }
 
     /// <summary>
@@ -469,6 +469,7 @@ public class Harkkatyö : PhysicsGame
         LuoMaila(maila);
         LuoOhjaimet(maila, valkoinenPallo);
         LuoPallot();
+        Updater(valkoinenPallo);
         Sfx.PlayMusic();
         HITCOUNTER = 0;
     }

@@ -40,7 +40,7 @@ public class SFX
     {
         intro.Play(VolumeLevel, 0, 0);
         Timer.SingleShot(6.79, delegate { bg.Play(VolumeLevel, 0, 0); });
-        Timer.CreateAndStart(143.8, delegate { bg.Play(VolumeLevel, 0, 0); });
+        Timer.CreateAndStart(137.14, delegate { bg.Play(VolumeLevel, 0, 0); });
     }
 
     public void PlayBall()
