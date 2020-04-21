@@ -10,13 +10,13 @@ public class SFX
     readonly SoundEffect error = Game.LoadSoundEffect("false");
     readonly SoundEffect seina = Game.LoadSoundEffect("wall");
     readonly SoundEffect intro = Game.LoadSoundEffect("intro");
-    readonly SoundEffect bg = Game.LoadSoundEffect("bg");
+    readonly SoundEffect bgm = Game.LoadSoundEffect("bgm");
     readonly SoundEffect ball = Game.LoadSoundEffect("ball");
     readonly SoundEffect fail = Game.LoadSoundEffect("fail");
     readonly SoundEffect win = Game.LoadSoundEffect("win");
     readonly SoundEffect power = Game.LoadSoundEffect("power");
 
-    private double VOLUMELEVEL = 0.2;
+    private double VOLUMELEVEL = 1;
 
     /// <summary>
     /// Get/Set ääniefektien äänenvoimakkuuden.
@@ -38,9 +38,11 @@ public class SFX
 
     public void PlayMusic()
     {
-        intro.Play(VolumeLevel, 0, 0);
-        Timer.SingleShot(6.79, delegate { bg.Play(VolumeLevel, 0, 0); });
-        Timer.CreateAndStart(137.14, delegate { bg.Play(VolumeLevel, 0, 0); });
+        intro.Play(VolumeLevel/2, 0, 0);
+        Timer bgmTimer = new Timer();
+        bgmTimer.Interval = 139.70;
+        bgmTimer.Timeout += delegate { bgm.Play(VolumeLevel / 2, 0, 0); };
+        Timer.SingleShot(2.18, delegate { bgm.Play(VolumeLevel/2, 0, 0); bgmTimer.Start(); });
     }
 
     public void PlayBall()
@@ -71,7 +73,7 @@ public class SFX
     public void StopMusic()
     {
         intro.Stop();
-        bg.Stop();
+        bgm.Stop();
     }
 
 }

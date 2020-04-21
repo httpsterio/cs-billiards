@@ -80,6 +80,9 @@
     <None Update="Content\bg.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Content\bgm.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Content\bilispallot.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
