@@ -39,8 +39,10 @@ public class SFX
     public void PlayMusic()
     {
         intro.Play(VolumeLevel/2, 0, 0);
-        Timer bgmTimer = new Timer();
-        bgmTimer.Interval = 139.70;
+        Timer bgmTimer = new Timer
+        {
+            Interval = 139.70
+        };
         bgmTimer.Timeout += delegate { bgm.Play(VolumeLevel / 2, 0, 0); };
         Timer.SingleShot(2.18, delegate { bgm.Play(VolumeLevel/2, 0, 0); bgmTimer.Start(); });
     }

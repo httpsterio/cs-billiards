@@ -20,7 +20,10 @@ public class Harkkatyö : PhysicsGame
     private bool CANHIT = true;
 
     // Laskuri montako kertaa pelaaja on lyönyt, käytetään pisteytyksessä. Voisi mahdollisesti siirtää aliohjelmaankin.
-    private int HITCOUNTER = 0;
+    private int POINTSCOUNTER = 0;
+
+    // Lista palloista jotka ovat pelissä
+    private List<PhysicsObject> PALLOTPELISSA = new List<PhysicsObject>();
 
     // Ääniluokan alustus
     private SFX Sfx;
@@ -42,13 +45,17 @@ public class Harkkatyö : PhysicsGame
         LuoValkoinenPallo(valkoinenPallo);
         LuoMaila(maila);
         LuoOhjaimet(maila, valkoinenPallo);
-        Tormaykset(valkoinenPallo, LuoPallot());
+        LisaaPallot(PalloInit());
+        Tormaykset(valkoinenPallo, PallotPelissa);
         Updater(valkoinenPallo);
         Sfx.PlayMusic();
 
     }
 
-    //
+    /// <summary>
+    /// 60 FPS päivittyvä ajastin jossa voi suorittaa jatkuvasti tarkistettavia asioita.
+    /// </summary>
+    /// <param name="pallo">Vataanottaa valkoisen pelipallon</param>
     private void Updater(PhysicsObject pallo)
     {
         Timer.CreateAndStart(0.016, getBallVelocity);
@@ -72,16 +79,19 @@ public class Harkkatyö : PhysicsGame
         set { CANHIT = value; }
     }
 
-    public int HitCounter
+    public List<PhysicsObject> PallotPelissa
     {
-        get { return HITCOUNTER; }
-        set { HITCOUNTER = value; }
+        get { return PALLOTPELISSA; }
+        set { PALLOTPELISSA = value; }
     }
 
-    //private List<PhysicsObject> BallsInGame()
-    //{
-    //    List<PhysicsObject> 
-    //}
+
+    public int PointsCounter
+    {
+        get { return POINTSCOUNTER; }
+        set { POINTSCOUNTER = value; }
+    }
+
 
 
     /// <summary>
@@ -118,7 +128,22 @@ public class Harkkatyö : PhysicsGame
             {
                 Sfx.PlayFail();
                 MessageDisplay.Add("Valkoinen taskussa");
-                HITCOUNTER += 5;
+                PointsCounter -= 5;
+                pallo.Velocity = new Vector(0, 0);
+                pallo.Position = new Vector(10000, 0);
+                Timer palloTaskussa = new Timer
+                {
+                    Interval = 0.16
+                };
+                palloTaskussa.Timeout += (delegate {
+                if (CanHit == false){}
+                else
+                    {
+                        pallo.Position = new Vector(200, 0);
+                        palloTaskussa.Stop();
+                    }
+                });
+                palloTaskussa.Start();
             }
         }
 
@@ -129,8 +154,9 @@ public class Harkkatyö : PhysicsGame
             {
                 Sfx.PlayWin();
                 MessageDisplay.Add("pallo taskussa");
+                
                 pallo.Destroy();
-                HITCOUNTER -= 1;
+                PointsCounter += 1;
             }
         }
 
@@ -150,8 +176,11 @@ public class Harkkatyö : PhysicsGame
         pallolista.ForEach(pallo => { AddCollisionHandler(pallo, palloTasku); });
     }
 
-    // Pelissä käytettävien pallojen luonti, ei ota vastaan parametreja mutta palauttaa listan fysiikkaobjekteista
-    private List<PhysicsObject> LuoPallot()
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    private List<PhysicsObject> PalloInit()
     {
         double r = 8;
         double pyth = Math.Sqrt(Math.Pow(2 * r, 2) - Math.Pow(r, 2));
@@ -185,7 +214,7 @@ public class Harkkatyö : PhysicsGame
             objektiLista.Add(LuoPallo(item.Item1, item.Item2, r, item.Item3));
         }
 
-        PhysicsObject LuoPallo(double x, double y, double r, String nimi)
+        static PhysicsObject LuoPallo(double x, double y, double r, String nimi)
         {
             PhysicsObject pallo = new PhysicsObject(r * 2, r * 2)
             {
@@ -198,12 +227,32 @@ public class Harkkatyö : PhysicsGame
                 LinearDamping = 0.98,
                 Mass = 0.04
             };
-            Add(pallo, 1);
             return pallo;
         }
 
         return objektiLista;
 
+    }
+
+    /// <summary>
+    /// Hakee pallot 
+    /// </summary>
+    /// <param name="palloinit"></param>
+    private void LisaaPallot(List<PhysicsObject> palloinit)
+    {
+        List<PhysicsObject> pallolista = new List<PhysicsObject>();
+        foreach (var item in PallotPelissa)
+        {
+            pallolista.Add(item);
+        }
+
+        foreach (var pallo in palloinit)
+        {
+            Add(pallo, 1);
+            pallolista.Add(pallo);
+        }
+
+        PallotPelissa = pallolista;
     }
 
     /// <summary>
@@ -225,7 +274,7 @@ public class Harkkatyö : PhysicsGame
         {
             if (voima <= voimaMax)
             {
-                voima = voima + 23;
+                voima += 23;
             }
             else
             {
@@ -447,8 +496,8 @@ public class Harkkatyö : PhysicsGame
         if (CanHit == true)
         {
             pallo.Push(suunta.Normalize() * voima);
-            HITCOUNTER++;
-            MessageDisplay.Add(HITCOUNTER.ToString());
+            PointsCounter--;
+            MessageDisplay.Add(PointsCounter.ToString());
         }
         else
         {
@@ -462,16 +511,16 @@ public class Harkkatyö : PhysicsGame
     /// </summary>
     /// <param name="maila">Beginnissä alustettu maila</param>
     /// <param name="valkoinenPallo">Beginissä alustettu pallo</param>
-    public void Init(PhysicsObject maila, PhysicsObject valkoinenPallo)
+    public void Init(PhysicsObject maila, PhysicsObject valkoinenPallo, List<PhysicsObject> PalloLista)
     {
         LuoKentta();
         LuoValkoinenPallo(valkoinenPallo);
         LuoMaila(maila);
         LuoOhjaimet(maila, valkoinenPallo);
-        LuoPallot();
+        LisaaPallot(PalloLista);
         Updater(valkoinenPallo);
         Sfx.PlayMusic();
-        HITCOUNTER = 0;
+        PointsCounter = 0;
     }
 
     /// <summary>
@@ -483,6 +532,6 @@ public class Harkkatyö : PhysicsGame
     {
         ClearAll();
         Sfx.StopMusic();
-        Init(maila, valkoinenPallo);
+        Init(maila, valkoinenPallo, PalloInit());
     }
 }
