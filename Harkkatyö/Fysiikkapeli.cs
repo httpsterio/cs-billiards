@@ -14,25 +14,29 @@ using Jypeli.Widgets;
 /// </summary>
 public class Harkkatyö : PhysicsGame
 {
-    // Muutama yleinen vakio, siirrän mahdolisuuksien mukaan jonnekkin aliohjelmaan, mikäli arvoja ei tarvitse kuljettaa joka aliohjelman välillä
-    // Boolean arvo voiko pelaaja lyödä vai ei, asetetaan negatiiviseksi lyönnin yhteydessä ja tarkistetaan 60 kertaa sekunnissa liikkuvatko pallot vielä,
-    // Kunnes pallot eivät enää liiku, asetetaan takaisin trueksi.
+    // Muutama yksityinen muuttuja, siirrän mahdolisuuksien mukaan jonnekkin aliohjelmaan, mikäli arvoja ei tarvitse kuljettaa joka aliohjelman välillä
+
+    // Boolean arvo voiko pelaaja lyödä vai ei, asetetaan negatiiviseksi lyönnin yhteydessä ja tarkistetaan 60 kertaa sekunnissa liikkuvatko pallot vielä, kunnes pallot eivät enää liiku, asetetaan takaisin trueksi.
     private bool CANHIT = true;
 
     // Laskuri montako kertaa pelaaja on lyönyt, käytetään pisteytyksessä. Voisi mahdollisesti siirtää aliohjelmaankin.
     private int POINTSCOUNTER = 0;
 
-    // Lista palloista jotka ovat pelissä
-    private List<PhysicsObject> PALLOTPELISSA = new List<PhysicsObject>();
+    // Lista palloista jotka ovat pelissä, joita voidaan get/set 
+    private List<PhysicsObject> BALLSINGAME = new List<PhysicsObject>();
 
     // Ääniluokan alustus
     private SFX Sfx;
 
-
+    /// <summary>
+    /// Pelin pääohjelma jossa kutsutaan tarvittavat aliohjelmat
+    /// </summary>
     public override void Begin()
     {
         // Asetetaan ääniluokka objektiin
         Sfx = new SFX();
+
+        // Otetaan hiiri käyttöön
         Mouse.IsCursorVisible = true;
 
 
@@ -40,13 +44,13 @@ public class Harkkatyö : PhysicsGame
         PhysicsObject valkoinenPallo = new PhysicsObject(16, 16);
         PhysicsObject maila = new PhysicsObject(17, 328);
 
-        // Kutsutaan tarvittavat aliohjelmat alkuun. Yritin tässä kutsua Init()-metodia, mutta pelissä esiintyy bugeja kontrollien kanssa tällöin.
+        // Kutsutaan tarvittavat aliohjelmat alkuun. Yritin tässä kutsua Init()-metodia suoraan, mutta se oli ongelmallista. CollisionHandlerit esim. eivät resetoiduja kontrollien kanssa tulee tuplabindauksia johon ohjelma hajoaa.
         LuoKentta();
         LuoValkoinenPallo(valkoinenPallo);
         LuoMaila(maila);
         LuoOhjaimet(maila, valkoinenPallo);
         LisaaPallot(PalloInit());
-        Tormaykset(valkoinenPallo, PallotPelissa);
+        Collisions(valkoinenPallo, BallsInGame);
         Updater(valkoinenPallo);
         Sfx.PlayMusic();
 
@@ -56,12 +60,15 @@ public class Harkkatyö : PhysicsGame
     /// 60 FPS päivittyvä ajastin jossa voi suorittaa jatkuvasti tarkistettavia asioita.
     /// </summary>
     /// <param name="pallo">Vataanottaa valkoisen pelipallon</param>
-    private void Updater(PhysicsObject pallo)
+    private void Updater(PhysicsObject whiteBall)
     {
-        Timer.CreateAndStart(0.016, getBallVelocity);
-        void getBallVelocity()
+        Timer.CreateAndStart(0.016, delegate { BallVelocity(); });
+
+        // Asettaa CANHIT-booleanin tilaa riippuen pallojen velocitysta
+        void BallVelocity()
         {
-            if (Math.Abs(pallo.Velocity.X) > 1 || Math.Abs(pallo.Velocity.Y) > 1)
+            // Tarkistaa valkoisen pallon velocityn
+            if (Math.Abs(whiteBall.Velocity.X) > 1 || Math.Abs(whiteBall.Velocity.Y) > 1)
             {
                 CanHit = false;
             }
@@ -69,23 +76,39 @@ public class Harkkatyö : PhysicsGame
             {
                 CanHit = true;
             }
+
+            // Tarkistaa muiden pallojen velocityn
+            foreach (var regularBall in BallsInGame)
+            {
+                if (regularBall.Velocity.X > 1 || regularBall.Velocity.Y > 1)
+                {
+                    CanHit = false;
+                }
+            }
         }
     }
 
-
+    /// <summary>
+    /// Julkinen boolean jolla tarkistetaan voiko pelaaja lyödä
+    /// </summary>
     public Boolean CanHit
     {
         get { return CANHIT; }
         set { CANHIT = value; }
     }
 
-    public List<PhysicsObject> PallotPelissa
+    /// <summary>
+    /// Julkinen lista pelissä olevista palloista
+    /// </summary>
+    public List<PhysicsObject> BallsInGame
     {
-        get { return PALLOTPELISSA; }
-        set { PALLOTPELISSA = value; }
+        get { return BALLSINGAME; }
+        set { BALLSINGAME = value; }
     }
 
-
+    /// <summary>
+    /// Julkinen pistelaskurimuuttuja
+    /// </summary>
     public int PointsCounter
     {
         get { return POINTSCOUNTER; }
@@ -93,87 +116,111 @@ public class Harkkatyö : PhysicsGame
     }
 
 
-
     /// <summary>
     /// Aliohjelma joka on vastuussa erilaisista törmäyksenkäsittelyistä
     /// </summary>
-    /// <param name="pelipallo">Beginissä alustettu valkoinen pallo</param>
-    /// <param name="pallolista">Lista pelissä olevista palloista</param>
-    private void Tormaykset(PhysicsObject pelipallo, List<PhysicsObject> pallolista)
+    /// <param name="whiteBall">Beginissä alustettu valkoinen pallo</param>
+    /// <param name="ballList">Lista pelissä olevista palloista</param>
+    private void Collisions(PhysicsObject whiteBall, List<PhysicsObject> ballList)
     {
-        // Törmäyskäsittelijä joka toistaa ääniluokasta äänen kun objekti törmää joko laitaan tai kulmaan
-        void palloSeinaAani(PhysicsObject pallo, PhysicsObject kohde)
+        // Törmäyskäsittelijä joka toistaa ääniluokasta äänen kun objekti törmää laitaan
+        void wallSound(PhysicsObject collidingBall, PhysicsObject collisionTarget)
         {
-            if (kohde.Tag.ToString() == "laita")
+            if (collisionTarget.Tag.ToString() == "edge")
             {
                 Sfx.PlayWall();
             }
         }
 
         // Kun pelipallo törmää toiseen palloon, toistetaan tämä ääni
-        void palloPalloAani(PhysicsObject pallo, PhysicsObject kohde)
+        void ballSound(PhysicsObject whiteBall, PhysicsObject collisionTarget)
         {
-            String kohdepallo = kohde.Tag.ToString();
-            bool isBall = kohdepallo.Contains("p");
+            // Muunnetaan pallon tagi stringiksi ja tarkistetaan sisältääkö stringi kirjaimen p niinkuin pallo. 
+            String collidingBall = collisionTarget.Tag.ToString();
+            bool isBall = collidingBall.Contains("p");
             if (isBall == true)
             {
                 Sfx.PlayBall();
             }
         }
 
-        // Funktio joka käsittelee kun pelipallo joutuu pussitettavaksi
-        void valkoinenTasku(PhysicsObject pallo, PhysicsObject kohde)
+        // Funktio joka käsittelee kun valkoinen pallo joutuu pussitettavaksi
+        void whiteBallPocket(PhysicsObject whiteBall, PhysicsObject collisionTarget)
         {
-            if (kohde.Tag.ToString() == "taskucollision")
+            if (collisionTarget.Tag.ToString() == "pocketCollision")
             {
                 Sfx.PlayFail();
                 MessageDisplay.Add("Valkoinen taskussa");
                 PointsCounter -= 5;
-                pallo.Velocity = new Vector(0, 0);
-                pallo.Position = new Vector(10000, 0);
-                Timer palloTaskussa = new Timer
+
+                // Pysäyttää valkoisen pallon ja siirtää sen ruudun ulkopuolelle (jotta pallo ei liiku kun se palautetaan=
+                whiteBall.Velocity = new Vector(0, 0);
+                whiteBall.Position = new Vector(10000, 0);
+
+                Timer ballPocketed = new Timer
                 {
                     Interval = 0.16
                 };
-                palloTaskussa.Timeout += (delegate {
-                if (CanHit == false){}
-                else
-                    {
-                        pallo.Position = new Vector(200, 0);
-                        palloTaskussa.Stop();
+
+                // Jos voidaan lyödä, siirrä pallo takaisin pöydälle ja pysäytä ajastin
+                ballPocketed.Timeout += (delegate {
+                    if (CanHit == true){
+                        whiteBall.Position = new Vector(200, 0);
+                        ballPocketed.Stop();
                     }
                 });
-                palloTaskussa.Start();
+
+                // Käynnistä ajastin pallon palauttamiseksi
+                ballPocketed.Start();
             }
         }
 
-        // Funktio joka toistaa äänen kun tavallinen pallo osuu taskuun
-        void palloTasku(PhysicsObject pallo, PhysicsObject kohde)
+        // Funktio joka käsittelee muiden pallojen pussitetuksijoutumisen
+        void ballPocket(PhysicsObject collidingBall, PhysicsObject collisionTarget)
         {
-            if (kohde.Tag.ToString() == "taskucollision")
+            // Vie pelin pallot väliaikaisesti uuteen listaan
+            List<PhysicsObject> removeBallList = new List<PhysicsObject>();
+            BallsInGame.ForEach(ball => removeBallList.Add(ball));
+
+            if (collisionTarget.Tag.ToString() == "pocketCollision")
             {
+                if (BallsInGame.Count > 1 && collidingBall.Tag.ToString() == "p8")
+                {
+                    Fail();
+                }
+                if (BallsInGame.Count == 1 && collidingBall.Tag.ToString() == "p8")
+                {
+                    Win();
+                }
                 Sfx.PlayWin();
-                MessageDisplay.Add("pallo taskussa");
-                
-                pallo.Destroy();
-                PointsCounter += 1;
+                MessageDisplay.Add("pallo pussitettu!");
+     
+                // Oikeasti? Enkö voi lambdalla poistaa suoraan?
+                // Poistaa väliaikaisesta listasta pallon tagin osoittamasta indeksistä
+                MessageDisplay.Add(collidingBall.Tag.ToString() + " pussitettu");
+                removeBallList.RemoveAt(removeBallList.FindIndex(ball => ball.Tag == collidingBall.Tag));
+
+                // Vie uuden listan muuttujalle
+                BallsInGame = removeBallList;
+                collidingBall.Destroy();
+                PointsCounter += 5;
             }
         }
 
         // Lisätään ylläoleva törmäyksenkäsittelijä valkoiseen palloon
-        AddCollisionHandler(pelipallo, palloSeinaAani);
+        AddCollisionHandler(whiteBall, wallSound);
 
         // Lisätään jokaiselle tavalliselle pallolle ääniefekti törmätessään seinään
-        pallolista.ForEach(pallo => { AddCollisionHandler(pallo, palloSeinaAani); });
+        ballList.ForEach(regularBall => { AddCollisionHandler(regularBall, wallSound); });
 
         // Ääniefekti kun pelipallo ja muut pallot törmäävät toisiinsa
-        AddCollisionHandler(pelipallo, palloPalloAani);
+        AddCollisionHandler(whiteBall, ballSound);
 
         // Tapahtumankäsittelijä kun pelipallo joutuu pussitettavaksi
-        AddCollisionHandler(pelipallo, valkoinenTasku);
+        AddCollisionHandler(whiteBall, whiteBallPocket);
 
         // Lisätään jokaiselle tavalliselle pallolle törmäyksentunnistus
-        pallolista.ForEach(pallo => { AddCollisionHandler(pallo, palloTasku); });
+        ballList.ForEach(pallo => { AddCollisionHandler(pallo, ballPocket); });
     }
 
     /// <summary>
@@ -241,7 +288,7 @@ public class Harkkatyö : PhysicsGame
     private void LisaaPallot(List<PhysicsObject> palloinit)
     {
         List<PhysicsObject> pallolista = new List<PhysicsObject>();
-        foreach (var item in PallotPelissa)
+        foreach (var item in BallsInGame)
         {
             pallolista.Add(item);
         }
@@ -252,7 +299,7 @@ public class Harkkatyö : PhysicsGame
             pallolista.Add(pallo);
         }
 
-        PallotPelissa = pallolista;
+        BallsInGame = pallolista;
     }
 
     /// <summary>
@@ -402,18 +449,18 @@ public class Harkkatyö : PhysicsGame
     // Funktio joka luo taskun. Taskulla on törmäyksentunnistus
     public void LuoTasku(Vector sijainti, double kallistus)
     {
-        PhysicsObject taskuCollision = new PhysicsObject(128, 64)
+        PhysicsObject pocketCollision = new PhysicsObject(128, 64)
         {
             Color = Color.Transparent,
             Position = sijainti,
             Shape = Shape.Rectangle,
             Angle = Angle.FromDegrees(kallistus),
-            Tag = "taskucollision"
+            Tag = "pocketCollision"
         };
-        taskuCollision.MakeStatic();
-        Add(taskuCollision);
+        pocketCollision.MakeStatic();
+        Add(pocketCollision);
 #if DEBUG
-        taskuCollision.Color = Color.Pink;
+        pocketCollision.Color = Color.Pink;
 #endif
 
     }
@@ -427,7 +474,7 @@ public class Harkkatyö : PhysicsGame
             Shape = Shape.Rectangle,
             Position = sijainti,
             Color = Color.Transparent,
-            Tag = "laita"
+            Tag = "edge"
         };
         laita.MakeStatic();
         Add(laita);
@@ -504,6 +551,16 @@ public class Harkkatyö : PhysicsGame
             Sfx.PlayError();
         }
         pallo.LinearDamping = 0.98;
+    }
+
+    public void Fail()
+    {
+        MessageDisplay.Add("FAIL FAIL FAIL");
+    }
+
+    public void Win()
+    {
+        MessageDisplay.Add("Voitto! Pisteesi ovat" + PointsCounter.ToString());
     }
 
     /// <summary>
