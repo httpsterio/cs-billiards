@@ -15,6 +15,7 @@ public class SFX
     readonly SoundEffect fail = Game.LoadSoundEffect("fail");
     readonly SoundEffect win = Game.LoadSoundEffect("win");
     readonly SoundEffect power = Game.LoadSoundEffect("power");
+    readonly SoundEffect gameover = Game.LoadSoundEffect("gameover");
 
     private double VOLUMELEVEL = 1;
 
@@ -76,6 +77,11 @@ public class SFX
     {
         intro.Stop();
         bgm.Stop();
+    }
+
+    public void PlayGameOver()
+    {
+        gameover.Play(VolumeLevel, 0, 0);
     }
 
 }
