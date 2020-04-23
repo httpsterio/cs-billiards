@@ -16,6 +16,7 @@ public class SFX
     readonly SoundEffect win = Game.LoadSoundEffect("win");
     readonly SoundEffect power = Game.LoadSoundEffect("power");
     readonly SoundEffect gameover = Game.LoadSoundEffect("gameover");
+    readonly SoundEffect youwin = Game.LoadSoundEffect("youwin");
 
     private double VOLUMELEVEL = 1;
 
@@ -82,6 +83,11 @@ public class SFX
     public void PlayGameOver()
     {
         gameover.Play(VolumeLevel, 0, 0);
+    }
+
+    public void PlayYouWin()
+    {
+        youwin.Play(VolumeLevel, 0, 0);
     }
 
 }

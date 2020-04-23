@@ -14,6 +14,7 @@ using Jypeli.Widgets;
 /// </summary>
 /// <bugs>
 /// 1. BallsInGame ei ehkä päivity Updaterissa eikä lakkaa tarkistamasta jo-poistettuja palloja. Ei ole ongelma nyt kun poistettavan pallon velocity asetetaan 0:ksi ennen poistoa, mutta saattaa olla ongelma.
+/// 2. 
 /// </bugs>
 public class Harkkatyö : PhysicsGame
 {
@@ -23,7 +24,6 @@ public class Harkkatyö : PhysicsGame
     private bool CANHIT = true;
 
     // Laskuri montako kertaa pelaaja on lyönyt, käytetään pisteytyksessä. Voisi mahdollisesti siirtää aliohjelmaankin.
-    private int POINTSCOUNTER = 0;
 
     // Lista palloista jotka ovat pelissä, joita voidaan get/set 
     private List<PhysicsObject> BALLSINGAME = new List<PhysicsObject>();
@@ -44,17 +44,18 @@ public class Harkkatyö : PhysicsGame
 
 
         // Alustetaan fysiikkaolioita. Näitä tarvitaan eri aliohjelmien välillä ja niitä välitetään parametrina toisilleen, muutoin nämä olisivat aliohjelmissaan.
-        PhysicsObject valkoinenPallo = new PhysicsObject(16, 16);
-        PhysicsObject maila = new PhysicsObject(17, 328);
+        PhysicsObject whiteBall = new PhysicsObject(16, 16);
+        PhysicsObject cue = new PhysicsObject(17, 328);
 
         // Kutsutaan tarvittavat aliohjelmat alkuun. Yritin tässä kutsua Init()-metodia suoraan, mutta se oli ongelmallista. CollisionHandlerit esim. eivät resetoiduja kontrollien kanssa tulee tuplabindauksia johon ohjelma hajoaa.
-        LuoKentta();
-        LuoValkoinenPallo(valkoinenPallo);
-        LuoMaila(maila);
-        BindControls(maila, valkoinenPallo);
+        CreateTable();
+        CreateWhiteBall(whiteBall);
+        CreateCue(cue);
+        BindControls(cue, whiteBall);
         AddBalls(BallInitList());
-        Collisions(valkoinenPallo, BallsInGame);
-        Updater(valkoinenPallo);
+        CreatePointCounter();
+        Collisions(whiteBall, BallsInGame);
+        Updater(whiteBall);
         Sfx.PlayMusic();
 
     }
@@ -65,7 +66,30 @@ public class Harkkatyö : PhysicsGame
     /// <param name="pallo">Vataanottaa valkoisen pelipallon</param>
     private void Updater(PhysicsObject whiteBall)
     {
-        Timer.CreateAndStart(0.016, delegate { BallVelocity(); });
+        List<PhysicsObject> updaterList = new List<PhysicsObject>();
+        Timer.CreateAndStart(0.016, delegate { 
+            BallVelocity();
+            updateList();
+
+        });
+        
+
+        void updateBallList()
+        {
+            updaterList.Clear();
+            BallsInGame.ForEach(ball => updaterList.Add(ball));
+        }
+
+        void updateList()
+        {
+            if (updaterList.Count > BallsInGame.Count)
+            {
+                updateBallList();
+            }
+        }
+
+        //updateBallList();
+        MessageDisplay.Add(updaterList.Count.ToString() + "PALLOA NYT");
 
         // Asettaa CANHIT-booleanin tilaa riippuen pallojen velocitysta
         void BallVelocity()
@@ -80,13 +104,16 @@ public class Harkkatyö : PhysicsGame
                 CanHit = true;
             }
 
-            // Tarkistaa muiden pallojen velocityn
-            // BallsInGame pitää ehkä lukea sisään paikalliseen muuttujaan
-            foreach (var regularBall in BallsInGame)
+
+            foreach (var regularBall in updaterList)
             {
                 if (regularBall.Velocity.X > 1 || regularBall.Velocity.Y > 1)
                 {
                     CanHit = false;
+                }
+                else
+                {
+                    CanHit = true;
                 }
             }
         }
@@ -110,14 +137,6 @@ public class Harkkatyö : PhysicsGame
         set { BALLSINGAME = value; }
     }
 
-    /// <summary>
-    /// Julkinen pistelaskurimuuttuja
-    /// </summary>
-    public int PointsCounter
-    {
-        get { return POINTSCOUNTER; }
-        set { POINTSCOUNTER = value; }
-    }
 
 
     /// <summary>
@@ -155,7 +174,7 @@ public class Harkkatyö : PhysicsGame
             {
                 Sfx.PlayFail();
                 MessageDisplay.Add("Valkoinen taskussa");
-                PointsCounter -= 5;
+                pointCounter.Value -= 5;
 
                 // Pysäyttää valkoisen pallon ja siirtää sen ruudun ulkopuolelle (jotta pallo ei liiku kun se palautetaan=
                 whiteBall.Velocity = new Vector(0, 0);
@@ -207,10 +226,10 @@ public class Harkkatyö : PhysicsGame
                 // Vie uuden listan yleiselle listamuuttujalle
                 BallsInGame = removeBallList;
 
-                // Asetetaan pussitetun pallon velocity nollaan, jostain syystä 
+                // Asetetaan pussitetun pallon velocity nollaan 
                 collidingBall.Velocity = new Vector(0, 0);
                 collidingBall.Destroy();
-                PointsCounter += 5;
+                pointCounter.Value += 5;
             }
         }
 
@@ -230,19 +249,25 @@ public class Harkkatyö : PhysicsGame
         ballList.ForEach(pallo => { AddCollisionHandler(pallo, ballPocket); });
     }
 
-    //void LuoPistelaskuri()
-    //{
-    //    pisteLaskuri = new IntMeter(0);
+    // Attribuutti pistelaskurille
+    IntMeter pointCounter;
 
-    //    Label pisteNaytto = new Label();
-    //    pisteNaytto.X = Screen.Left + 100;
-    //    pisteNaytto.Y = Screen.Top - 100;
-    //    pisteNaytto.TextColor = Color.Black;
-    //    pisteNaytto.Color = Color.White;
+    // Funktio joka lisää peliin pistelaskurin
+    void CreatePointCounter()
+    {
+        pointCounter = new IntMeter(0, int.MinValue, int.MaxValue);
 
-    //    pisteNaytto.BindTo(pisteLaskuri);
-    //    Add(pisteNaytto);
-    //}
+        Label pointLabel = new Label
+        {
+            Y = Screen.Bottom + 30,
+            X = 0,
+            TextColor = Color.Black,
+            Color = Color.White,
+            Title = "Pisteesi"
+        };
+        pointLabel.BindTo(pointCounter);
+        Add(pointLabel);
+    }
 
     /// <summary>
     /// Alustaa pallojen luomisen generoimalla listasta joukon fysiikkaobjekteja antaen niillä sijainnin, mutta ei lisää peliin vielä
@@ -349,22 +374,29 @@ public class Harkkatyö : PhysicsGame
         double hitPowerDefault = 300;
         double hitPower = hitPowerDefault;
         double hitPowerMax = 10000;
+        const double powerIncrement = 42.4;
 
         // Sitoo pelimailan hiireen ja liikuttaa pelimailaa SiirraMaila-ohjelman avulla
         Mouse.ListenMovement(0.1, MoveCue, "Liikuta mailaa hiirellä", cue, whiteBall);
 
-        // Kun hiiren vasen painike on painettuna, kasvattaa voimakerrointa 23:lla sekunnissa kunhan se on alle voimaMaxin arvon
+        // Kun hiiren vasen painike on painettuna, kasvattaa hitPoweria powerIncrementin verran 60 kertaa sekunnissa.
+        // powerIncrementin arvo on siis (((hitPowerMax - hitPowerDefault) / power.wavin kesto) / 60 FPS)
         Mouse.Listen(MouseButton.Left, ButtonState.Down, delegate ()
         {
             if (hitPower <= hitPowerMax)
             {
-                hitPower += 42.4;
-                MessageDisplay.Add(hitPower.ToString());
+                hitPower += powerIncrement;
+                #if DEBUG
+                        MessageDisplay.Add(hitPower.ToString());
+                #endif
+
             }
             else
             {
                 hitPower = hitPowerMax;
-                MessageDisplay.Add(hitPower.ToString());
+                #if DEBUG
+                        MessageDisplay.Add(hitPower.ToString());
+                #endif
             }
         }, null);
 
@@ -376,7 +408,7 @@ public class Harkkatyö : PhysicsGame
         // Kun hiiren painikkeesta on päästetty irti, pysäyttää ääniklipin ja välittää voimakertoimen arvon LyoPalloa-funktiolle. Sen jälkeen voimakerroin asetetaan takaisin oletusarvoonsa.
         Mouse.Listen(MouseButton.Left, ButtonState.Released, delegate () {
             Sfx.StopPower();
-            LyoPalloa(whiteBall, cue, ref hitPower);
+            HitBall(whiteBall, cue, ref hitPower);
             hitPower = hitPowerDefault;
             
         }, "Lyö palloa painamalla hiiren vasenta nappia. Mitä pidempään pidät nappia pohjassa, sen kovempaa lyöt.");
@@ -385,6 +417,7 @@ public class Harkkatyö : PhysicsGame
         // Sitoo Esc-näppäimen pelin sulkemiseen
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, "Lopeta peli");
 
+        // Sitoo F1-painikkeen ohjetekstin näyttämiseen
         Keyboard.Listen(Key.F1, ButtonState.Down, ShowControlHelp, "Näytä näppäimet");
 
         // Sitoo R-näppäimen pelin uudelleenkäynnistykseen ja suorittaa Reset-aliohjelman.
@@ -393,59 +426,66 @@ public class Harkkatyö : PhysicsGame
             Reset(cue, whiteBall);
         }, "Aloita alusta");
 
+        Keyboard.Listen(Key.D1, ButtonState.Pressed, delegate ()
+        {
+            MessageDisplay.Add(CanHit.ToString());
+        }, null); 
+
     }
 
     /// <summary>
     /// Luo pelaajan valkoisen pallon
     /// </summary>
-    /// <param name="valkoinenPallo">Pääohjelmassa alustettu fysiikkaolio välitetään tänne ja lisätään peliin</param>
-    private void LuoValkoinenPallo(PhysicsObject valkoinenPallo)
+    /// <param name="whiteBall">Pääohjelmassa alustettu fysiikkaolio välitetään tänne ja lisätään peliin</param>
+    private void CreateWhiteBall(PhysicsObject whiteBall)
     {
-        valkoinenPallo.Shape = Shape.Circle;
-        valkoinenPallo.X = 200;
-        valkoinenPallo.Tag = "pv";
-        valkoinenPallo.Y = 0;
-        valkoinenPallo.Mass = 0.1;
-        Add(valkoinenPallo);
-        valkoinenPallo.Velocity = new Vector(0, 0);
+        whiteBall.Shape = Shape.Circle;
+        whiteBall.X = 200;
+        whiteBall.Tag = "pv";
+        whiteBall.Y = 0;
+        whiteBall.Mass = 0.1;
+        whiteBall.LinearDamping = 0.98;
+        Add(whiteBall);
+        whiteBall.Velocity = new Vector(0, 0);
     }
 
     /// <summary>
     /// Luo pelikentän joka koostuu kolmesta gameobjektista joilla on kuvat (ei fysiikoita) sekä lisää näkymättömiä fysiikkaolioita sekä törmäyksentunnistukseen sekä pelikentän pelilaidoiksi
     /// </summary>
-    private void LuoKentta()
+    private void CreateTable()
     {
         // Asettaa ikkunan koon, laittaa pelille laidat ja zoomaa pelin näkyviin elementteihin.
         SetWindowSize(1280, 1024);
         Level.CreateBorders();
+        Level.BackgroundColor = new Color(4,64,72);
         Camera.ZoomToLevel();
 
-        // Lataa kuvasta kentän laidat ja luo gameobjektin.
-        GameObject kentta = new GameObject(784, 448)
+        // Asettaa peliobjektille kentän kuvan ja asettaa sen tasolle -1 (pallojen alle)
+        GameObject tableBorders = new GameObject(784, 448)
         {
             Image = LoadImage("poyta"),
             Shape = Shape.Rectangle,
             Position = new Vector(0, 0)
         };
-        Add(kentta, -1);
+        Add(tableBorders, -1);
 
-        // Lataa kuvasta taskut ja luo siitä gameobjektin.
-        GameObject taskut = new GameObject(784, 448)
+        // Asettaa taskujen kuvan gameobjektille ja lisää sen tasolle -2 (laitojen ja pallojen alle)
+        GameObject pockets = new GameObject(784, 448)
         {
             Image = LoadImage("taskut"),
             Shape = Shape.Rectangle,
             Position = new Vector(0, 0)
         };
-        Add(taskut, -2);
+        Add(pockets, -2);
 
-        // Asettaa pelikentälle taustaobjektin.
-        GameObject kangas = new GameObject(784, 448)
+        // Asettaa pelikentälle taustaobjektin tasolle -3
+        GameObject cloth = new GameObject(784, 448)
         {
-            Color = Color.Green,
+            Color = new Color(0,128,64),
             Shape = Shape.Rectangle,
             Position = new Vector(0, 0)
         };
-        Add(kangas, -3);
+        Add(cloth, -3);
 
         // Alempana on kolme listaa, jotka sisältävät koordinaatteja, kokoja ja mahdollisesti kallistuskulmia
         // joiden avulla generoidaan fysiikkaobjekteja (laidat, taskut ja taskujen supistajat). Alkuperäisessä 
@@ -454,7 +494,7 @@ public class Harkkatyö : PhysicsGame
         // sisälaitoina, joten tässä on purkkaratkaisu. 
 
         // Lista, jossa on laitablokkien koot (korkeus, leveys) ja sijainti vektoreina. Näitä käytetään törmäyksissä ja elementit on listassa jotta niitä voidaan kutsua loopilla.
-        var laitaLista = new List<(double, double, Vector)>
+        var borderList = new List<(double, double, Vector)>
         {
             (64, 312, new Vector(-376, 0)),
             (64, 312, new Vector(376, 0)),
@@ -465,13 +505,13 @@ public class Harkkatyö : PhysicsGame
         };
 
         // Iteroi listan läpi ja välittää listan itemeiden arvot parametrina funktiolle joka luo laidat
-        foreach (var item in laitaLista)
+        foreach (var item in borderList)
         {
-            LuoLaita(item.Item1, item.Item2, item.Item3);
+            CreateBorder(item.Item1, item.Item2, item.Item3);
         }
 
         // Lista vektoreista sekä kallistuskulmista joista luodaan taskuja
-        var taskuLista = new List<(Vector, double)>
+        var pocketList = new List<(Vector, double)>
         {
             (new Vector(-372, 196), 45),
             (new Vector(372, 196), -45),
@@ -482,21 +522,25 @@ public class Harkkatyö : PhysicsGame
         };
 
         // Iteroi listan läpi ja välittää listan arvot parametrina funktiolle joka luo taskut törmäyksiä varten 
-        foreach (var item in taskuLista)
+        foreach (var item in pocketList)
         {
-            LuoTasku(item.Item1, item.Item2);
+            CreatePocket(item.Item1, item.Item2);
         }
     }
 
-    // Funktio joka luo taskun. Taskulla on törmäyksentunnistus
-    public void LuoTasku(Vector sijainti, double kallistus)
+    /// <summary>
+    /// Funktio joka luo taskun. Taskuja käytetään pallojen törmäyksen tunnistuksessa
+    /// </summary>
+    /// <param name="position">Taskun sijainti vektorina</param>
+    /// <param name="angledegrees">taskun kallistus asteina</param>
+    public void CreatePocket(Vector position, double angledegrees)
     {
         PhysicsObject pocketCollision = new PhysicsObject(128, 64)
         {
             Color = Color.Transparent,
-            Position = sijainti,
+            Position = position,
             Shape = Shape.Rectangle,
-            Angle = Angle.FromDegrees(kallistus),
+            Angle = Angle.FromDegrees(angledegrees),
             Tag = "pocketCollision"
         };
         pocketCollision.MakeStatic();
@@ -507,19 +551,23 @@ public class Harkkatyö : PhysicsGame
 
     }
 
-
-    // Funktio joka luo näkymättömät sivulaidat törmäystä varten
-    public void LuoLaita(double leveys, double korkeus, Vector sijainti)
+    /// <summary>
+    /// Funktio joka luo näkymättömät sivulaidat pallojen kimmoitusta varten
+    /// </summary>
+    /// <param name="width">laidan leveys</param>
+    /// <param name="height">laidan korkeus</param>
+    /// <param name="position">laidan sijainti vektorina</param>
+    public void CreateBorder(double width, double height, Vector position)
     {
-        PhysicsObject laita = new PhysicsObject(leveys, korkeus)
+        PhysicsObject border = new PhysicsObject(width, height)
         {
             Shape = Shape.Rectangle,
-            Position = sijainti,
+            Position = position,
             Color = Color.Transparent,
             Tag = "edge"
         };
-        laita.MakeStatic();
-        Add(laita);
+        border.MakeStatic();
+        Add(border);
 #if DEBUG
         laita.Color = Color.Blue;
 #endif
@@ -529,32 +577,32 @@ public class Harkkatyö : PhysicsGame
     /// <summary>
     /// Luo pelaajan ohjaamaa mailaa ja tarkistaa voiko lyödä ja säätää sen perusteella mailan kokoa
     /// </summary>
-    /// <param name="maila">Vastaanottaa parametrina Beginissä alustettu maila</param>
-    public void LuoMaila(PhysicsObject maila)
+    /// <param name="cue">Vastaanottaa parametrina Beginissä alustettu maila</param>
+    public void CreateCue(PhysicsObject cue)
     {
         Vector paikkaruudulla = Mouse.PositionOnScreen;
-        maila.Color = Color.Transparent;
-        maila.Shape = Shape.Rectangle;
-        maila.Image = LoadImage("maila");
-        maila.X = paikkaruudulla.X;
-        maila.Y = paikkaruudulla.Y;
-        maila.Angle = Angle.FromDegrees(0);
-        maila.IgnoresCollisionResponse = true;
-        Add(maila, 2);
+        cue.Color = Color.Transparent;
+        cue.Shape = Shape.Rectangle;
+        cue.Image = LoadImage("maila");
+        cue.X = paikkaruudulla.X;
+        cue.Y = paikkaruudulla.Y;
+        cue.Angle = Angle.FromDegrees(0);
+        cue.IgnoresCollisionResponse = true;
+        Add(cue, 2);
 
         // Ajastin joka päivittyy 60FPS
-        Timer.CreateAndStart(0.016, mailanKoko);
+        Timer.CreateAndStart(0.016, cueSize);
 
         // Säätää mailan kokoa CanHitin perusteella, jos ei voi lyödä niin maila piiloitetaan.
-        void mailanKoko()
+        void cueSize()
         {
             if (CanHit == true)
             {
-                maila.Size = new Vector(17, 328);
+                cue.Size = new Vector(17, 328);
             }
             else
             {
-                maila.Size = new Vector(1, 1);
+                cue.Size = new Vector(1, 1);
             }
         }
 
@@ -563,38 +611,45 @@ public class Harkkatyö : PhysicsGame
     /// <summary>
     /// Hiireen sidottu funktio, laskee Atan2:lla mailan ja pallon välisen kulman ja kääntää mailaa osoittamaan pallon suuntaan aina
     /// </summary>
-    /// <param name="maila">Vastaanottaa beginnissä alustettu maila</param>
-    /// <param name="pallo">Vastaanottaa beginissä alustettu valkoinen pallo</param>
-    public void MoveCue(PhysicsObject maila, PhysicsObject pallo)
+    /// <param name="cue">Vastaanottaa beginnissä alustettu maila</param>
+    /// <param name="whiteBall">Vastaanottaa beginissä alustettu valkoinen pallo</param>
+    public void MoveCue(PhysicsObject cue, PhysicsObject whiteBall)
     {
-        maila.Position = Mouse.PositionOnScreen;
-        double posX = maila.Position.X - pallo.Position.X;
-        double posY = maila.Position.Y - pallo.Position.Y;
-        maila.Angle = Angle.FromRadians(Math.Atan2(posY, posX) + Math.PI / 2);
+        cue.Position = Mouse.PositionOnScreen;
+        double posX = cue.Position.X - whiteBall.Position.X;
+        double posY = cue.Position.Y - whiteBall.Position.Y;
+        cue.Angle = Angle.FromRadians(Math.Atan2(posY, posX) + Math.PI / 2);
     }
 
     /// <summary>
     /// Hiireen sidottu funktio joka vastaa palloon lyömisestä
     /// </summary>
-    /// <param name="pallo"></param>
-    /// <param name="maila"></param>
-    /// <param name="voima"></param>
-    public void LyoPalloa(PhysicsObject pallo, PhysicsObject maila, ref double voima)
+    /// <param name="whiteBall"></param>
+    /// <param name="cue"></param>
+    /// <param name="hitPower"></param>
+    public void HitBall(PhysicsObject whiteBall, PhysicsObject cue, ref double hitPower)
     {
-        Vector suunta = new Vector(pallo.X - maila.X, pallo.Y - maila.Y);
+        //Luo uuden vektorin jonka arvoksi tulee valkoisen pallon sekä mailan sijaintien erotus karteesisella koordinaatistolla
+        Vector suunta = new Vector(whiteBall.X - cue.X, whiteBall.Y - cue.Y);
+
+        // Mikäli voidaan lyödä, normalisoidaan suunan voimavektori ja kerrotaan se hiirenpainalluksen kerryttämällä voimakertoimella
         if (CanHit == true)
         {
-            pallo.Push(suunta.Normalize() * voima);
-            PointsCounter--;
-            MessageDisplay.Add(PointsCounter.ToString());
+            whiteBall.Push(suunta.Normalize() * hitPower);
+            pointCounter.Value -= 1;
         }
+        
+        // Jos ei voida lyödä, herjataan äänellä.
         else
         {
             Sfx.PlayError();
         }
-        pallo.LinearDamping = 0.98;
+
     }
 
+    /// <summary>
+    /// Funktio joka suoritetaan mikäli kasipallo pussitetaan ennen muita palloja
+    /// </summary>
     public void Fail()
     {
         MessageDisplay.Add("FAIL FAIL FAIL");
@@ -603,9 +658,15 @@ public class Harkkatyö : PhysicsGame
         Pause();
     }
 
+
+    /// <summary>
+    // Funktio, joka suoritetaan jos kasipallo pussitetaan viimeisenä
+    /// </summary>
     public void Win()
     {
-        MessageDisplay.Add("Voitto! Pisteesi ovat" + PointsCounter.ToString());
+        Sfx.StopMusic();
+        Sfx.PlayYouWin();
+        MessageDisplay.Add("Voitto! Pisteesi ovat" + pointCounter.Value.ToString());
     }
 
     /// <summary>
@@ -613,30 +674,34 @@ public class Harkkatyö : PhysicsGame
     /// </summary>
     /// <param name="maila">Beginnissä alustettu maila</param>
     /// <param name="valkoinenPallo">Beginissä alustettu pallo</param>
-    public void Init(PhysicsObject maila, PhysicsObject valkoinenPallo)
+    public void Init(PhysicsObject cue, PhysicsObject whiteBall)
     {
-        LuoKentta();
-        LuoValkoinenPallo(valkoinenPallo);
-        LuoMaila(maila);
-        BindControls(maila, valkoinenPallo);
+        CreateTable();
+        CreateWhiteBall(whiteBall);
+        CreateCue(cue);
+        BindControls(cue, whiteBall);
         AddBalls(BallInitList());
-        Updater(valkoinenPallo);
+        Collisions(whiteBall, BallsInGame);
+        Updater(whiteBall);
         Sfx.PlayMusic();
-        PointsCounter = 0;
+        CreatePointCounter();
+        BallsInGame.ForEach(ball => ball.Velocity = new Vector(0, 0));
     }
 
     /// <summary>
     /// Uudelleenkäynnistää pelin, pysäyttää musiikin ja suorittaa Init-funktion
     /// </summary>
-    /// <param name="maila">Beginissä alustettu maila</param>
-    /// <param name="valkoinenPallo">Beginissä alustettu valkoinen pallo</param>
-    public void Reset(PhysicsObject maila, PhysicsObject valkoinenPallo)
+    /// <param name="cue">Beginissä alustettu maila</param>
+    /// <param name="whiteBall">Beginissä alustettu valkoinen pallo</param>
+    public void Reset(PhysicsObject cue, PhysicsObject whiteBall)
     {
         // Asettaa jokaisen pallon velocityn nollaan, jotta resetin jälkeen CanHit päivittyy oikein.
         BallsInGame.ForEach(ball => ball.Velocity = new Vector(0, 0));
         ClearAll();
+        MessageDisplay.Add(BallsInGame.Count.ToString() + "JA NYT");
+        RemoveCollisionHandlers();
         Sfx.StopMusic();
         // Suorittaa uusiksi aliohjelmat, jotka tuhottiin ClearAllilla.
-        Init(maila, valkoinenPallo);
+        Init(cue, whiteBall);
     }
 }
