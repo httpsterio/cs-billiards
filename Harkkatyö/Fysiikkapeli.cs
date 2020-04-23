@@ -13,8 +13,7 @@ using Jypeli.Widgets;
 /// Jypelillä toteutettu biljardi-peli yhdelle pelaajalle
 /// </summary>
 /// <bugs>
-/// 1. BallsInGame ei ehkä päivity Updaterissa eikä lakkaa tarkistamasta jo-poistettuja palloja. Ei ole ongelma nyt kun poistettavan pallon velocity asetetaan 0:ksi ennen poistoa, mutta saattaa olla ongelma.
-/// 2. 
+/// 1. BallsInGame ei ehkä päivity Updaterissa eikä lakkaa tarkistamasta jo-poistettuja palloja. Ei ole ongelma nyt kun poistettavan pallon velocity asetetaan 0:ksi ennen poistoa, mutta saattaa olla ongelma. Ei lue ehkä myöskään uusia palloja resetin jälkeen?
 /// </bugs>
 public class Harkkatyö : PhysicsGame
 {
@@ -66,30 +65,11 @@ public class Harkkatyö : PhysicsGame
     /// <param name="pallo">Vataanottaa valkoisen pelipallon</param>
     private void Updater(PhysicsObject whiteBall)
     {
-        List<PhysicsObject> updaterList = new List<PhysicsObject>();
         Timer.CreateAndStart(0.016, delegate { 
             BallVelocity();
-            updateList();
 
         });
-        
 
-        void updateBallList()
-        {
-            updaterList.Clear();
-            BallsInGame.ForEach(ball => updaterList.Add(ball));
-        }
-
-        void updateList()
-        {
-            if (updaterList.Count > BallsInGame.Count)
-            {
-                updateBallList();
-            }
-        }
-
-        //updateBallList();
-        MessageDisplay.Add(updaterList.Count.ToString() + "PALLOA NYT");
 
         // Asettaa CANHIT-booleanin tilaa riippuen pallojen velocitysta
         void BallVelocity()
@@ -102,19 +82,6 @@ public class Harkkatyö : PhysicsGame
             else
             {
                 CanHit = true;
-            }
-
-
-            foreach (var regularBall in updaterList)
-            {
-                if (regularBall.Velocity.X > 1 || regularBall.Velocity.Y > 1)
-                {
-                    CanHit = false;
-                }
-                else
-                {
-                    CanHit = true;
-                }
             }
         }
     }
@@ -136,8 +103,6 @@ public class Harkkatyö : PhysicsGame
         get { return BALLSINGAME; }
         set { BALLSINGAME = value; }
     }
-
-
 
     /// <summary>
     /// Aliohjelma joka on vastuussa erilaisista törmäyksenkäsittelyistä
@@ -250,9 +215,12 @@ public class Harkkatyö : PhysicsGame
     }
 
     // Attribuutti pistelaskurille
-    IntMeter pointCounter;
+    private IntMeter pointCounter;
 
     // Funktio joka lisää peliin pistelaskurin
+    /// <summary>
+    /// Pistelaskuri joka on 
+    /// </summary>
     void CreatePointCounter()
     {
         pointCounter = new IntMeter(0, int.MinValue, int.MaxValue);
@@ -425,11 +393,6 @@ public class Harkkatyö : PhysicsGame
         {
             Reset(cue, whiteBall);
         }, "Aloita alusta");
-
-        Keyboard.Listen(Key.D1, ButtonState.Pressed, delegate ()
-        {
-            MessageDisplay.Add(CanHit.ToString());
-        }, null); 
 
     }
 
@@ -652,7 +615,7 @@ public class Harkkatyö : PhysicsGame
     /// </summary>
     public void Fail()
     {
-        MessageDisplay.Add("FAIL FAIL FAIL");
+        MessageDisplay.Add("Hävisit pelin! Paina R-näppäintä aloittaaksesi alusta");
         Sfx.StopMusic();
         Sfx.PlayGameOver();
         Pause();
@@ -698,7 +661,6 @@ public class Harkkatyö : PhysicsGame
         // Asettaa jokaisen pallon velocityn nollaan, jotta resetin jälkeen CanHit päivittyy oikein.
         BallsInGame.ForEach(ball => ball.Velocity = new Vector(0, 0));
         ClearAll();
-        MessageDisplay.Add(BallsInGame.Count.ToString() + "JA NYT");
         RemoveCollisionHandlers();
         Sfx.StopMusic();
         // Suorittaa uusiksi aliohjelmat, jotka tuhottiin ClearAllilla.
